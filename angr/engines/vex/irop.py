@@ -13,6 +13,7 @@ l = logging.getLogger(name=__name__)
 
 import pyvex
 import claripy
+from taint import is_tainted, taintedUnconstrainedBits
 
 #
 # The more sane approach
@@ -366,13 +367,6 @@ class SimIROp(object):
                 print("... %s: %s" % (k, v))
 
     def calculate(self, *args):
-        if not all(isinstance(a, claripy.ast.Base) for a in args):
-            import ipdb; ipdb.set_trace()
-            raise SimOperationError("IROp needs all args as claripy expressions")
-
-        if not self._float:
-            args = tuple(arg.raw_to_bv() for arg in args)
-
         try:
             return self.extend_size(self._calculate(args))
         except (ZeroDivisionError, claripy.ClaripyZeroDivisionError) as e:
@@ -972,6 +966,15 @@ def translate_inner(state, irop, s_args):
     try:
         if irop._float and not options.SUPPORT_FLOATING_POINT in state.options:
             raise UnsupportedIROpError("floating point support disabled")
+        if not all(isinstance(a, claripy.ast.Base) for a in s_args):
+            import ipdb; ipdb.set_trace()
+            raise SimOperationError("IROp needs all args as claripy expressions")
+        if not irop._float:
+            s_args = tuple(arg.raw_to_bv() for arg in s_args)
+        if state.has_plugin('irop_hook'):
+            hooked_result = state.irop_hook.do_op(state, irop, s_args)
+            if hooked_result is not None:
+                return hooked_result
         return irop.calculate(*s_args)
     except SimZeroDivisionException:
         if state.mode == 'static' and len(s_args) == 2 and state.solver.is_true(s_args[1] == 0):
