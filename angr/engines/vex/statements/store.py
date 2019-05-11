@@ -26,4 +26,7 @@ def SimIRStmt_Store(engine, state, stmt):
 
     # Now do the store (if we should)
     if o.DO_STORES in state.options:
-        state.memory.store(addr, data, action=a, endness=stmt.endness)
+        if state.has_plugin('store_hook'):
+            state.store_hook.do_store(state, addr, data, None, endness=stmt.endness, action=a)
+        else:
+            state.memory.store(addr, expr, endness=stmt.endness, action=a)

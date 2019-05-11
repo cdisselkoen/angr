@@ -23,4 +23,7 @@ def SimIRStmt_StoreG(engine, state, stmt):
     else:
         a = None
 
-    state.memory.store(addr, expr, condition=guard == 1, endness=stmt.end, action=a)
+    if state.has_plugin('store_hook'):
+        state.store_hook.do_store(state, addr, expr, condition=(guard == 1), endness=stmt.end, action=a)
+    else:
+        state.memory.store(addr, expr, condition=guard == 1, endness=stmt.end, action=a)
