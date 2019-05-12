@@ -20,15 +20,6 @@ def SimIRStmt_LoadG(engine, state, stmt):
     converted_size_bits = get_type_size(converted_type)
     read_size = read_size_bits // state.arch.byte_width
 
-    if state.has_plugin('load_hook'):
-        read_expr = state.load_hook.do_load(state, addr, read_size, endness=stmt.end, condition=guard != 0)
-        # this is a tremendous hack, but right now development speed is priority
-        # This function is normally supposed to return None; we trust that if the
-        #   caller has 'load_hook' then they will know how to properly handle this
-        #   return data without crashing, also it is up to that caller to finish the
-        #   rest of the tasks that would normally be performed by this function
-        #   (and hence they need all this data)
-        return stmt, addr, read_expr, alt, guard, read_size_bits, converted_size_bits, addr_deps, alt_deps, guard_deps
     read_expr = state.memory.load(addr, read_size, endness=stmt.end, condition=guard != 0)
     if read_size_bits == converted_size_bits:
         converted_expr = read_expr
